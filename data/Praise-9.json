@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "Praise",
+  "risk": "2",
+  "title": "Invalid success check for the internal function _transferNativeToken in Executor.sol.",
+  "issueId": 9,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/9"
+}
