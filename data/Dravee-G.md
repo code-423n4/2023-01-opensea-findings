@@ -22,7 +22,7 @@ Gas Issues | 8 | Around 6600
 `SSTORE` from 0 to 1 (or any non-zero value) costs 20000 gas.
 `SSTORE` from 1 to 2 (or any other non-zero value) costs 5000 gas.
 
-At L87, there's a SSTORE that can be avoided, saving 5000 gas when it shouldn't happen:
+At L87, there's a SSTORE from non-zero to non-zero that can be avoided, saving 5000 gas when it shouldn't happen:
 
 ```diff
 File: OrderValidator.sol
@@ -290,15 +290,11 @@ File: ZoneInteraction.sol
 
 ## 8. Pre-decrements cost less than post-decrements
 
-*Estimated savings: 16 gas per iteration*
+*Estimated savings: 5 gas per iteration*
 
 For a `uint256 maximumFulfilled` variable, the following is true with the Optimizer enabled at 10k:
 
-**Decrement:**
-
-- `maximumFulfilled -= 1` is the most expensive form
-- `maximumFulfilled--` costs 11 gas less than above
-- `--maximumFulfilled` costs 5 gas less than above (16 gas less than further above)
+- `--maximumFulfilled` costs 5 gas less than `maximumFulfilled--`
 
 Affected code:  
 
