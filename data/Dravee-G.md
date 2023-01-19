@@ -186,6 +186,7 @@ seaport/contracts/lib/ConsiderationEncoder.sol:
 *Estimated savings: 3 gas*
 
 Tested on Remix: The optimized equivalent of `or(eq(a, 2), eq(a, 3))` is `and(lt(a, 4),gt(a, 1))` (saving 3 gas)
+
 **POC:**
 The following opcodes happen for `and(lt(a, 4),gt(a, 1))`:
 
