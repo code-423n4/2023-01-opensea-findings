@@ -2,7 +2,7 @@
 
 Risk Rating | Number of issues | Estimated savings
 --- | --- | ---
-Gas Issues | 9 | Around 6600
+Gas Issues | 8 | Around 6600
 
 **Table of Contents:**
 
@@ -10,11 +10,10 @@ Gas Issues | 9 | Around 6600
 - [2. Use of the `storage` keyword when `memory` should be used](#2-use-of-the-storage-keyword-when-memory-should-be-used)
 - [3. Shift left by 5 instead of multiplying by 32](#3-shift-left-by-5-instead-of-multiplying-by-32)
 - [4. Using XOR bitwise equivalent](#4-using-xor-bitwise-equivalent)
-- [5. Using a positive logical equivalent to save a NOT opcode](#5-using-a-positive-logical-equivalent-to-save-a-not-opcode)
-- [6. Using a positive conditional flow to save a NOT opcode](#6-using-a-positive-conditional-flow-to-save-a-not-opcode)
-- [7. Swap conditions for a better happy path](#7-swap-conditions-for-a-better-happy-path)
+- [5. Using a positive conditional flow to save a NOT opcode](#5-using-a-positive-conditional-flow-to-save-a-not-opcode)
+- [6. Swap conditions for a better happy path](#6-swap-conditions-for-a-better-happy-path)
+- [7. Optimized operations](#7-optimized-operations)
 - [8. Pre-decrements cost less than post-decrements](#8-pre-decrements-cost-less-than-post-decrements)
-- [9. Optimized operations](#9-optimized-operations)
 
 ## 1. Avoid writing the same value with a SSTORE
 
@@ -117,38 +116,50 @@ Places where this optimization can be applied are as such:
 
 - A simple multiplication by 32:
 
-```solidity
+```diff
 File: OrderCombiner.sol
-220:             terminalMemoryOffset = (totalOrders + 1) * 32; //@audit-issue << 5
+- 220:             terminalMemoryOffset = (totalOrders + 1) * 32; //@audit-issue << 5
++ 220:             terminalMemoryOffset = (totalOrders + 1) << 5;
 ```
 
 - Multiplying by the constant `OneWord == 0x20`, as `0x20` in hex is actually `32` in decimals:
 
-```solidity
+```diff
 seaport/contracts/lib/ConsiderationDecoder.sol:
-  386:             uint256 tailOffset = arrLength * OneWord;
-  427:             uint256 arrSize = (arrLength + 1) * OneWord;
-  485:             uint256 tailOffset = arrLength * OneWord;
-  525:             uint256 tailOffset = arrLength * OneWord;
-  617:             uint256 tailOffset = arrLength * OneWord;
-  660:             uint256 tailOffset = arrLength * OneWord;
-  731:             uint256 tailOffset = arrLength * OneWord;
+-  386:             uint256 tailOffset = arrLength * OneWord;
++  386:             uint256 tailOffset = arrLength << 5;
+-  427:             uint256 arrSize = (arrLength + 1) * OneWord;
++  427:             uint256 arrSize = (arrLength + 1) << 5;
+-  485:             uint256 tailOffset = arrLength * OneWord;
++  485:             uint256 tailOffset = arrLength << 5;
+-  525:             uint256 tailOffset = arrLength * OneWord;
++  525:             uint256 tailOffset = arrLength << 5;
+-  617:             uint256 tailOffset = arrLength * OneWord;
++  617:             uint256 tailOffset = arrLength << 5;
+-  660:             uint256 tailOffset = arrLength * OneWord;
++  660:             uint256 tailOffset = arrLength << 5;
+-  731:             uint256 tailOffset = arrLength * OneWord;
++  731:             uint256 tailOffset = arrLength << 5;
 
 seaport/contracts/lib/ConsiderationEncoder.sol:
-  499                  additionalRecipientsLength *
-  500:                 OneWord;
-  567:             uint256 headAndTailSize = length * OneWord;
-  678:             MemoryPointer srcHeadEnd = srcHead.offset(length * OneWord);
+-  499                  additionalRecipientsLength *
++  499                  additionalRecipientsLength <<
+-  500:                 OneWord;
++  500:                 5;
+-  567:             uint256 headAndTailSize = length * OneWord;
++  567:             uint256 headAndTailSize = length << 5;
+-  678:             MemoryPointer srcHeadEnd = srcHead.offset(length * OneWord);
++  678:             MemoryPointer srcHeadEnd = srcHead.offset(length << 5);
 ```
 
 ## 4. Using XOR bitwise equivalent
 
 *Estimated savings: 73 gas*
 
-On Remix, the following are logical equivalents, but don't cost the same amount of gas:
+On Remix, given only `uint256` types, the following are logical equivalents, but don't cost the same amount of gas:
 
 - `(a != b || c != d || e != f)` costs 571
-- `((a ^ b) | (c ^ d) | (e ^ f)) != 0` costs 498
+- `((a ^ b) | (c ^ d) | (e ^ f)) != 0` costs 498 (saving 73 gas)
 
 Consider rewriting the following to save gas:
 
@@ -159,34 +170,20 @@ File: FulfillmentApplier.sol
 - 95:             execution.item.token != considerationItem.token ||
 - 96:             execution.item.identifier != considerationItem.identifier
 + 94:             ((execution.item.itemType ^ considerationItem.itemType) |
-+ 95:             (execution.item.token ^ considerationItem.token) |
++ 95:             (uint160(execution.item.token) ^ uint160(considerationItem.token)) |
 + 96:             (execution.item.identifier ^ considerationItem.identifier)) != 0
 97:         ) {
 ```
 
-## 5. Using a positive logical equivalent to save a NOT opcode
+This little POC (use `forge test -m test_XorEq`) also proves that they are equivalent:
 
-*Estimated savings: 6 gas*
-
-The expression `(a|b) != 0` is logically equivalent to `(a & b) == 0`, which is 3 gas cheaper due to the NOT opcode not being here.
-
-```diff
-File: BasicOrderFulfiller.sol
-177:             if (
-- 178:                 (uint160(parameters.considerationToken) |
-- 179:                     parameters.considerationIdentifier) != 0
-+ 178:                 (uint160(parameters.considerationToken) &
-+ 179:                     parameters.considerationIdentifier) == 0
-180:             ) {
+```solidity
+    function test_XorEq(uint8 a, uint8 b, address c, address d, uint256 e, uint256 f) external {
+        assert((a != b || c != d || e != f) == (((a ^ b) | (uint160(c) ^ uint160(d)) | (e ^ f)) != 0));
+    }
 ```
 
-```diff
-File: Executor.sol
-- 60:             if ((uint160(item.token) | item.identifier) != 0) {
-+ 60:             if ((uint160(item.token) & item.identifier) == 0) {
-```
-
-## 6. Using a positive conditional flow to save a NOT opcode
+## 5. Using a positive conditional flow to save a NOT opcode
 
 *Estimated savings: 3 gas*
 
@@ -213,7 +210,7 @@ File: OrderValidator.sol
 876:     }
 ```
 
-## 7. Swap conditions for a better happy path
+## 6. Swap conditions for a better happy path
 
 *Estimated savings: 6 gas*
 
@@ -237,6 +234,60 @@ File: PointerLibraries.sol
 227:         }
 ```
 
+## 7. Optimized operations
+
+*Estimated savings: 3 gas*
+
+Tested on Remix: The optimized equivalent of `or(eq(a, 2), eq(a, 3))` is `and(lt(a, 4),gt(a, 1))` (saving 3 gas)
+**POC:**
+The following opcodes happen for `and(lt(a, 4),gt(a, 1))`:
+
+```
+      PUSH 4   4
+      DUP2    lt(a, 4)
+      LT    lt(a, 4)
+      PUSH 1   1
+      SWAP1    gt(a, 1)
+      SWAP2    gt(a, 1)
+      GT    gt(a, 1)
+      AND    and(lt(a, 4), gt(a, 1))
+      SWAP1    and(lt(a, 4), gt(a, 1))
+```
+
+The following opcodes happen for `or(eq(a, 2), eq(a, 3))`:
+
+```
+      PUSH 2   2
+      DUP2    eq(a, 2)
+      EQ    eq(a, 2)
+      PUSH 3   3
+      SWAP2    eq(a, 3)
+      SWAP1    eq(a, 3)
+      SWAP2    eq(a, 3)
+      EQ    eq(a, 3)
+      OR    or(eq(a, 2), eq(a, 3))
+      SWAP1    or(eq(a, 2), eq(a, 3))
+```
+
+As we can see here, an extra SWAP is costing an extra 3 gas compared to the optimized version.
+Consider replacing with the following:
+
+```diff
+File: ZoneInteraction.sol
+140:     function _isRestrictedAndCallerNotZone(
+141:         OrderType orderType,
+142:         address zone
+143:     ) internal view returns (bool mustValidate) {
+144:         assembly {
+145:             mustValidate := and(
+- 146:                 or(eq(orderType, 2), eq(orderType, 3)),
++ 146:                 and(lt(orderType, 4),gt(orderType, 1)),
+147:                 iszero(eq(caller(), zone))
+148:             )
+149:         }
+150:     }
+```
+
 ## 8. Pre-decrements cost less than post-decrements
 
 *Estimated savings: 16 gas per iteration*
@@ -255,29 +306,4 @@ Affected code:
 File: OrderCombiner.sol
 - 272:                 maximumFulfilled--;
 + 272:                 --maximumFulfilled;
-```
-
-## 9. Optimized operations
-
-*Estimated savings: 3 gas*
-
-Tested on Remix: The optimized equivalent of `or(eq(a, 2), eq(a, 3))` is `lt(a, 4) && gt(a, 1)`
-This expression uses the less than operator (lt) and greater than operator (gt) to check if the value of a is between 2 and 3 (inclusive) instead of using eq operator twice.
-
-It's worth noting that, this expression will return the same results as the original, but is a little bit more gas efficient than using multiple eq operator.
-
-```diff
-File: ZoneInteraction.sol
-140:     function _isRestrictedAndCallerNotZone(
-141:         OrderType orderType,
-142:         address zone
-143:     ) internal view returns (bool mustValidate) {
-144:         assembly {
-145:             mustValidate := and(
-- 146:                 or(eq(orderType, 2), eq(orderType, 3)),
-+ 146:                 and(lt(orderType, 4),gt(orderType, 1)),
-147:                 iszero(eq(caller(), zone))
-148:             )
-149:         }
-150:     }
 ```
