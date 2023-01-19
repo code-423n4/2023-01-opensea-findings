@@ -2,18 +2,17 @@
 
 Risk Rating | Number of issues | Estimated savings
 --- | --- | ---
-Gas Issues | 8 | Around 6600
+Gas Issues | 7 | Around 6300
 
 **Table of Contents:**
 
 - [1. Avoid writing the same value with a SSTORE](#1-avoid-writing-the-same-value-with-a-sstore)
-- [2. Use of the `storage` keyword when `memory` should be used](#2-use-of-the-storage-keyword-when-memory-should-be-used)
+- [2. Using XOR bitwise equivalent](#2-using-xor-bitwise-equivalent)
 - [3. Shift left by 5 instead of multiplying by 32](#3-shift-left-by-5-instead-of-multiplying-by-32)
-- [4. Using XOR bitwise equivalent](#4-using-xor-bitwise-equivalent)
+- [4. Optimized operations](#4-optimized-operations)
 - [5. Using a positive conditional flow to save a NOT opcode](#5-using-a-positive-conditional-flow-to-save-a-not-opcode)
 - [6. Swap conditions for a better happy path](#6-swap-conditions-for-a-better-happy-path)
-- [7. Optimized operations](#7-optimized-operations)
-- [8. Pre-decrements cost less than post-decrements](#8-pre-decrements-cost-less-than-post-decrements)
+- [7. Pre-decrements cost less than post-decrements](#7-pre-decrements-cost-less-than-post-decrements)
 
 ## 1. Avoid writing the same value with a SSTORE
 
@@ -36,8 +35,9 @@ File: OrderValidator.sol
 - 87:         orderStatus.isValidated = true; //@audit gas: this SSTORE can be moved in the condition above, like L799
 ```
 
-Indeed, setting `orderStatus.isValidated = true` is only necessary when getting inside the `if(!orderStatus.isValidated)` condition.
-This logic can be seen rightly implemented line L799:
+Indeed, setting `orderStatus.isValidated = true` is only necessary when getting inside the `if(!orderStatus.isValidated)` condition, otherwise it's redundant.
+
+The same logic can be seen rightly implemented line L799:
 
 ```solidity
 File: OrderValidator.sol
@@ -49,53 +49,71 @@ File: OrderValidator.sol
 803:                 }
 ```
 
-## 2. Use of the `storage` keyword when `memory` should be used
+## 2. Using XOR bitwise equivalent
 
-*Estimated savings: 300 gas*
+*Estimated savings: 73 gas*
+*Average savings according to `yarn profile`: 196 gas*
 
-When copying a state struct in memory, there are as many SLOADs as there are slots.
+On Remix, given only `uint256` types, the following are logical equivalents, but don't cost the same amount of gas:
 
-For `struct OrderStatus`, there's only 1 SLOT:
+- `(a != b || c != d || e != f)` costs 571
+- `((a ^ b) | (c ^ d) | (e ^ f)) != 0` costs 498 (saving 73 gas)
 
-```solidity
-File: ConsiderationStructs.sol
-189: struct OrderStatus {
-190:     bool isValidated;
-191:     bool isCancelled;
-192:     uint120 numerator;
-193:     uint120 denominator;
-194: }
-```
-
-However, the way it's used, there are 4 storage accesses on L845-848, losing the advantage of the tight packing. Consider using the `memory` keyword instead:
+Consider rewriting as following to save gas:
 
 ```diff
-File: OrderValidator.sol
-828:     function _getOrderStatus(
-829:         bytes32 orderHash
-830:     )
-831:         internal
-832:         view
-833:         returns (
-834:             bool isValidated,
-835:             bool isCancelled,
-836:             uint256 totalFilled,
-837:             uint256 totalSize
-838:         )
-839:     {
-840:         // Retrieve the order status using the order hash.
-- 841:         OrderStatus storage orderStatus = _orderStatus[orderHash];
-+ 841:         OrderStatus memory orderStatus = _orderStatus[orderHash];
-842: 
-843:         // Return the fields on the order status.
-844:         return (
-845:             orderStatus.isValidated,
-846:             orderStatus.isCancelled,
-847:             orderStatus.numerator,
-848:             orderStatus.denominator
-849:         );
-850:     }
+File: FulfillmentApplier.sol
+93:         if (
+- 94:             execution.item.itemType != considerationItem.itemType ||
+- 95:             execution.item.token != considerationItem.token ||
+- 96:             execution.item.identifier != considerationItem.identifier
++ 94:             ((uint8(execution.item.itemType) ^ uint8(considerationItem.itemType)) |
++ 95:             (uint160(execution.item.token) ^ uint160(considerationItem.token)) |
++ 96:             (execution.item.identifier ^ considerationItem.identifier)) != 0
+97:         ) {
 ```
+
+**POC**
+
+This little POC (use `forge test -m test_XorEq`) proves that the formulas are equivalent:
+
+```solidity
+    function test_XorEq(uint8 a, uint8 b, address c, address d, uint256 e, uint256 f) external {
+        assert((a != b || c != d || e != f) == (((a ^ b) | (uint160(c) ^ uint160(d)) | (e ^ f)) != 0));
+    }
+```
+
+Please keep in mind that Foundry cannot currently fuzz `Enum` types, which is why we're using `uint8` types above, which is [treated the same according to the Solidity documentation](https://docs.soliditylang.org/en/v0.8.17/types.html#enums). However, you can try the following test on Remix to make sure, as it will always pass the asserts:
+
+```solidity
+    function test_enum(ItemType a, ItemType b) public {
+        assert((a != b) == (uint8(a) != uint8(b)));
+        assert((a != b) == ((uint8(a) ^ uint8(b)) != 0));
+    }
+```
+
+**yarn profile**
+This is the diff between the contest repo's `yarn profile` and the added suggestion's `yarn profile`, as `yarn profile` never changes the "Previous Report" it compares the "Current Report" to:
+
+```diff
+===============================================================================================
+| method                         |          min |           max |           avg |       calls |
+===============================================================================================
+- | matchAdvancedOrders            | +12 (+0.01%) |     -12 (0%) | -471 (-0.19%) | +2 (+2.67%) |
++ | matchAdvancedOrders            | -40 (-0.02%) |  -92 (-0.03%)| -546 (-0.22%) | +2 (+2.67%) |
+- | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -234 (-0.09%) | +2 (+1.34%) |
++ | matchOrders                    | -20 (-0.01%) | -176 (-0.05%)| -323 (-0.12%) | +2 (+1.34%) |
+- | validate                       |        53206 |        83915 |       -1 (0%) |          27 |
++ | validate                       |        53206 |  -24 (-0.03%)|   -7 (-0.01%) |          27 |
+===============================================================================================
+- | runtime size                   |        23583 |              |               |             |
++ | runtime size                   | -13 (-0.06%) |              |               |             |
+- | init code size                 | +78 (+0.29%) |              |               |             |
++ | init code size                 | +65 (+0.24%) |              |               |             |
+===============================================================================================
+```
+
+Added together, the average gas saving counted here is 196.
 
 ## 3. Shift left by 5 instead of multiplying by 32
 
@@ -152,89 +170,18 @@ seaport/contracts/lib/ConsiderationEncoder.sol:
 +  678:             MemoryPointer srcHeadEnd = srcHead.offset(length << 5);
 ```
 
-## 4. Using XOR bitwise equivalent
+**POC**
 
-*Estimated savings: 73 gas*
-
-On Remix, given only `uint256` types, the following are logical equivalents, but don't cost the same amount of gas:
-
-- `(a != b || c != d || e != f)` costs 571
-- `((a ^ b) | (c ^ d) | (e ^ f)) != 0` costs 498 (saving 73 gas)
-
-Consider rewriting the following to save gas:
-
-```diff
-File: FulfillmentApplier.sol
-93:         if (
-- 94:             execution.item.itemType != considerationItem.itemType ||
-- 95:             execution.item.token != considerationItem.token ||
-- 96:             execution.item.identifier != considerationItem.identifier
-+ 94:             ((execution.item.itemType ^ considerationItem.itemType) |
-+ 95:             (uint160(execution.item.token) ^ uint160(considerationItem.token)) |
-+ 96:             (execution.item.identifier ^ considerationItem.identifier)) != 0
-97:         ) {
-```
-
-This little POC (use `forge test -m test_XorEq`) also proves that they are equivalent:
+- Run `forge test -m test_shl5`:
 
 ```solidity
-    function test_XorEq(uint8 a, uint8 b, address c, address d, uint256 e, uint256 f) external {
-        assert((a != b || c != d || e != f) == (((a ^ b) | (uint160(c) ^ uint160(d)) | (e ^ f)) != 0));
+    function test_shl5(uint256 a) public {
+        vm.assume(a <= type(uint256).max / 32); // This is to avoid an overflow
+        assert((a * 32) == (a << 5)); // always true 
     }
 ```
 
-## 5. Using a positive conditional flow to save a NOT opcode
-
-*Estimated savings: 3 gas*
-
-The following function either revert or returns some value. To save some gas (NOT opcode costing 3 gas), switch to a positive statement:
-
-```diff
-File: OrderValidator.sol
-863:     function _revertOrReturnEmpty(
-864:         bool revertOnInvalid,
-865:         bytes32 contractOrderHash
-866:     )
-867:         internal
-868:         pure
-869:         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
-870:     {
-- 871:         if (!revertOnInvalid) { //@audit-issue save the NOT opcode
-+ 871:         if (revertOnInvalid) {
-- 872:             return (contractOrderHash, 0, 0);
-+ 872:             _revertInvalidContractOrder(contractOrderHash);
-873:         }
-874: 
-- 875:         _revertInvalidContractOrder(contractOrderHash);
-+ 875:         return (contractOrderHash, 0, 0);
-876:     }
-```
-
-## 6. Swap conditions for a better happy path
-
-*Estimated savings: 6 gas*
-
-When a staticcall ends in failure, there will rarely, if ever, be a case of `returndatasize()` being non-zero. However, most often with a staticcall, `success` will be true, while the `returndatasize()` has a higher probability of being 0. The consequence is that, in the current order of conditions, both conditions are more likely to be evaluated. Furthermore, the RETURNDATASIZE opcode costs 2 gas while a MLOAD costs 3 gas. Consider swapping both conditions here for a better happy path:
-
-```diff
-File: PointerLibraries.sol
-215:         assembly {
-216:             let success := staticcall(
-217:                 gas(),
-218:                 IdentityPrecompileAddress,
-219:                 src,
-220:                 size,
-221:                 dst,
-222:                 size
-223:             )
-- 224:             if or(iszero(success), iszero(returndatasize())) {
-+ 224:             if or(iszero(returndatasize()), iszero(success)) {
-225:                 revert(0, 0)
-226:             }
-227:         }
-```
-
-## 7. Optimized operations
+## 4. Optimized operations
 
 *Estimated savings: 3 gas*
 
@@ -288,7 +235,58 @@ File: ZoneInteraction.sol
 150:     }
 ```
 
-## 8. Pre-decrements cost less than post-decrements
+## 5. Using a positive conditional flow to save a NOT opcode
+
+*Estimated savings: 3 gas*
+
+The following function either revert or returns some value. To save some gas (NOT opcode costing 3 gas), switch to a positive statement:
+
+```diff
+File: OrderValidator.sol
+863:     function _revertOrReturnEmpty(
+864:         bool revertOnInvalid,
+865:         bytes32 contractOrderHash
+866:     )
+867:         internal
+868:         pure
+869:         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
+870:     {
+- 871:         if (!revertOnInvalid) { //@audit-issue save the NOT opcode
++ 871:         if (revertOnInvalid) {
+- 872:             return (contractOrderHash, 0, 0);
++ 872:             _revertInvalidContractOrder(contractOrderHash);
+873:         }
+874: 
+- 875:         _revertInvalidContractOrder(contractOrderHash);
++ 875:         return (contractOrderHash, 0, 0);
+876:     }
+```
+
+## 6. Swap conditions for a better happy path
+
+*Estimated savings: 6 gas*
+
+When a staticcall ends in failure, there will rarely, if ever, be a case of `returndatasize()` being non-zero. However, most often with a staticcall, `success` will be true, while the `returndatasize()` has a higher probability of being 0. The consequence is that, in the current order of conditions, both conditions are more likely to be evaluated. Furthermore, the RETURNDATASIZE opcode costs 2 gas while a MLOAD costs 3 gas. Consider swapping both conditions here for a better happy path:
+
+```diff
+File: PointerLibraries.sol
+215:         assembly {
+216:             let success := staticcall(
+217:                 gas(),
+218:                 IdentityPrecompileAddress,
+219:                 src,
+220:                 size,
+221:                 dst,
+222:                 size
+223:             )
+- 224:             if or(iszero(success), iszero(returndatasize())) {
++ 224:             if or(iszero(returndatasize()), iszero(success)) {
+225:                 revert(0, 0)
+226:             }
+227:         }
+```
+
+## 7. Pre-decrements cost less than post-decrements
 
 *Estimated savings: 5 gas per iteration*
 
