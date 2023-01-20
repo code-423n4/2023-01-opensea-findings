@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "0xbrett8571",
+  "risk": "3",
+  "title": "Lack of proper input validation in fulfillOrder function",
+  "issueId": 31,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/31"
+}
