@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "0xbrett8571",
+  "risk": "3",
+  "title": "Unauthorized Access in `_verifySignature` function due to improper use of `msg.sender`.",
+  "issueId": 29,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/29"
+}
