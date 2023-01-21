@@ -7,15 +7,18 @@
 
 ### Total Non-Critical issues
 
-| Number  | Issues Details                                          | Context       |
-|---------|---------------------------------------------------------|---------------|
-| [NC-01] | Include `@return` parameters in NatSpec comments        | All Contracts |
-| [NC-02] | Contracts should have full test coverage                | All Contracts |
-| [NC-03] | Need Fuzzing test                                       | All Contracts |
-| [NC-04] | Use a more recent version of solidity                   | 32            |
-| [NC-05] | Missing natspec                                         | All Contracts |
-| [NC-06] | Constants in comparisons should appear on the left side | 11            |
-| [NC-07] | Use `bytes.concat()` and `string.concat()`              | 3             |
+| Number  | Issues Details                                          | Context        |
+|---------|---------------------------------------------------------|----------------|
+| [NC-01] | Include `@return` parameters in NatSpec comments        | All Contracts  |
+| [NC-02] | Contracts should have full test coverage                | All Contracts  |
+| [NC-03] | Need Fuzzing test                                       | All Contracts  |
+| [NC-04] | Use a more recent version of solidity                   | 32             |
+| [NC-05] | Missing natspec                                         | All Contracts  |
+| [NC-06] | Constants in comparisons should appear on the left side | 11             |
+| [NC-07] | Use `bytes.concat()` and `string.concat()`              | 3              |
+| [NC-08] | Add `I` prefix to interface contracts                   | All Interfaces |
+| [NC-09] | Insufficient coverage                                   | All Contracts  |
+| [NC-10] | Generate perfect code headers every time                | All Contracts  |
 
 ## [L-01] Low level calls with solidity version 0.8.14 and lower can result in optimiser bug
 
@@ -189,3 +192,47 @@ Constants should appear on the left side.
 ### Recommended Mitigation Steps
 
 Use `bytes.concat()` and `string.concat()`.
+
+## [NC-08] Add `I` prefix to interface contracts    
+
+Filename prefixed by `I` usually indicates an interface rather than a contract.
+
+### Lines of code 
+
+- **[All Interfaces](https://github.com/ProjectOpenSea/seaport/tree/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/interfaces)**
+
+### Recommended Mitigation Steps
+
+Add `I` prefix to interface contracts    
+
+## [NC-09] Insufficient coverage   
+
+The test coverage rate of the project is >90%. Testing all functions is best practice in terms of security criteria.
+
+```
+- What is the overall line coverage percentage provided by your tests?: >90%
+```
+
+### Lines of code
+
+- **All Contracts**
+
+### Recommended Mitigation Steps
+
+Test coverage is expected to be 100%
+
+## [NC-10] Generate perfect code headers every time
+
+I recommend using header for Solidity code layout and readability
+
+> Ref: https://github.com/transmissions11/headers
+
+```
+/*//////////////////////////////////////////////////////////////
+                           TESTING 123
+//////////////////////////////////////////////////////////////*/
+```
+
+### Lines of code 
+
+- **All Contracts**
