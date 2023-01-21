@@ -3,7 +3,6 @@
 | Number | Issues Details                                                                     | Context       |
 |--------|------------------------------------------------------------------------------------|---------------|
 | [L-01] | Low level calls with solidity version 0.8.14 and lower can result in optimiser bug | 5             |
-| [L-02] | Lock pragmas to specific compiler version                                          | All Contracts |
 
 ### Total Non-Critical issues
 
@@ -19,6 +18,7 @@
 | [NC-08] | Add `I` prefix to interface contracts                   | All Interfaces |
 | [NC-09] | Insufficient coverage                                   | All Contracts  |
 | [NC-10] | Generate perfect code headers every time                | All Contracts  |
+| [NC-11] | Lock pragmas to specific compiler version               | All Contracts  |
 
 ## [L-01] Low level calls with solidity version 0.8.14 and lower can result in optimiser bug
 
@@ -37,22 +37,6 @@ The protocol is using low level calls with solidity version less then 0.8.14 whi
 ### Recommended Mitigation Steps
 
 Consider upgrading to solidity 0.8.17
-
-## [L-02] Lock pragmas to specific compiler version
-
-Pragma statements can be allowed to float when a contract is intended for consumption by other developers, as in the case with contracts in a library or EthPM package. Otherwise, the developer would need to manually update the pragma in order to compile locally. 
-
-> Ref: https://swcregistry.io/docs/SWC-103
-
-### Lines of code 
-
-- **All Contracts**
-
-### Recommended Mitigation Steps
-
-Ethereum Smart Contract Best Practices - Lock pragmas to specific compiler version. 
-
-> https://consensys.github.io/smart-contract-best-practices/development-recommendations/solidity-specific/locking-pragmas/
 
 ## [NC-01] Include `@return` parameters in NatSpec comments
 
@@ -227,12 +211,30 @@ I recommend using header for Solidity code layout and readability
 
 > Ref: https://github.com/transmissions11/headers
 
+### Lines of code 
+
+- **All Contracts**
+
+### Recommended Mitigation Steps
+
 ```
 /*//////////////////////////////////////////////////////////////
                            TESTING 123
 //////////////////////////////////////////////////////////////*/
 ```
 
+## [NC-11] Lock pragmas to specific compiler version
+
+Pragma statements can be allowed to float when a contract is intended for consumption by other developers, as in the case with contracts in a library or EthPM package. Otherwise, the developer would need to manually update the pragma in order to compile locally. 
+
+> Ref: https://swcregistry.io/docs/SWC-103
+
 ### Lines of code 
 
 - **All Contracts**
+
+### Recommended Mitigation Steps
+
+Ethereum Smart Contract Best Practices - Lock pragmas to specific compiler version. 
+
+> https://consensys.github.io/smart-contract-best-practices/development-recommendations/solidity-specific/locking-pragmas/
