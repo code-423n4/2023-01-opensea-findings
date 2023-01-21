@@ -2,57 +2,21 @@
 
 Risk Rating | Number of issues | Estimated savings
 --- | --- | ---
-Gas Issues | 7 | Around 6300
+Gas Issues | 6 | Around 650
 
 **Table of Contents:**
 
-- [1. Avoid writing the same value with a SSTORE](#1-avoid-writing-the-same-value-with-a-sstore)
-- [2. Using XOR bitwise equivalent](#2-using-xor-bitwise-equivalent)
-- [3. Shift left by 5 instead of multiplying by 32](#3-shift-left-by-5-instead-of-multiplying-by-32)
-- [4. Optimized operations](#4-optimized-operations)
-- [5. Using a positive conditional flow to save a NOT opcode](#5-using-a-positive-conditional-flow-to-save-a-not-opcode)
-- [6. Swap conditions for a better happy path](#6-swap-conditions-for-a-better-happy-path)
-- [7. Pre-decrements cost less than post-decrements](#7-pre-decrements-cost-less-than-post-decrements)
+- [1. Using XOR bitwise equivalent](#1-using-xor-bitwise-equivalent)
+- [2. Shift left by 5 instead of multiplying by 32](#2-shift-left-by-5-instead-of-multiplying-by-32)
+- [3. Using a positive conditional flow to save a NOT opcode](#3-using-a-positive-conditional-flow-to-save-a-not-opcode)
+- [4. Swap conditions for a better happy path](#4-swap-conditions-for-a-better-happy-path)
+- [5. Optimized operations](#5-optimized-operations)
+- [6. Pre-decrements cost less than post-decrements](#6-pre-decrements-cost-less-than-post-decrements)
 
-## 1. Avoid writing the same value with a SSTORE
-
-*Estimated savings: 5000 gas*
-
-`SSTORE` from 0 to 1 (or any non-zero value) costs 20000 gas.
-`SSTORE` from 1 to 2 (or any other non-zero value) costs 5000 gas.
-
-At L87, there's a SSTORE from non-zero to non-zero that can be avoided, saving 5000 gas when it shouldn't happen:
-
-```diff
-File: OrderValidator.sol
-81:         // If the order is not already validated, verify the supplied signature.
-82:         if (!orderStatus.isValidated) {
-83:             _verifySignature(offerer, orderHash, signature);
-+ 84:           orderStatus.isValidated = true;
-84:         }
-85: 
-86:         // Update order status as fully filled, packing struct values.
-- 87:         orderStatus.isValidated = true; //@audit gas: this SSTORE can be moved in the condition above, like L799
-```
-
-Indeed, setting `orderStatus.isValidated = true` is only necessary when getting inside the `if(!orderStatus.isValidated)` condition, otherwise it's redundant.
-
-The same logic can be seen rightly implemented line L799:
-
-```solidity
-File: OrderValidator.sol
-785:                 if (!orderStatus.isValidated) {
-...
-798:                     // Update order status to mark the order as valid.
-799:                     orderStatus.isValidated = true;
-...
-803:                 }
-```
-
-## 2. Using XOR bitwise equivalent
+## 1. Using XOR bitwise equivalent
 
 *Estimated savings: 73 gas*
-*Average savings according to `yarn profile`: 196 gas*
+*Max savings according to `yarn profile`: 282 gas*
 
 On Remix, given only `uint256` types, the following are logical equivalents, but don't cost the same amount of gas:
 
@@ -127,24 +91,25 @@ This is the diff between the contest repo's `yarn profile` and the added suggest
 ===============================================================================================
 ```
 
-Added together, the average gas saving counted here is 196.
+Added together, the max gas saving counted here is 282.
 
 Consider applying the suggested equivalence and **add a comment mentioning what this is equivalent to**, as this is less human-readable, but still understandable once it's been taught.
 
-## 3. Shift left by 5 instead of multiplying by 32
+## 2. Shift left by 5 instead of multiplying by 32
 
-*Estimated savings: 1100 gas*
+*Estimated savings: 22 gas*
+*Max savings according to `yarn profile`: 98 gas*
 
-The equivalent of multiplying by 32 is shifting left by 5. On Remix, a simple POC shows some noticeable savings in gas (Optimizer at 10k runs):
+The equivalent of multiplying by 32 is shifting left by 5. On Remix, a simple POC shows some by replacing one with the other (Optimizer at 10k runs):
 
 ```solidity
     function shiftLeft5(uint256 a) public pure returns (uint256) {
-        //return a * 32; //480
-        //return a << 5; //375
+        //unchecked { return a * 32; } //346
+        //unchecked { return a << 5; } //344
     }
 ```
 
-Additionally, let's not forget that the MUL opcode costs 5 gas and the SHL opcode costs 3 gas.
+This is due to the fact that the MUL opcode costs 5 gas and the SHL opcode costs 3 gas. Therefore, saving those 2 units of gas is expected.
 
 Places where this optimization can be applied are as such:
 
@@ -176,10 +141,6 @@ seaport/contracts/lib/ConsiderationDecoder.sol:
 +  731:             uint256 tailOffset = arrLength << 5;
 
 seaport/contracts/lib/ConsiderationEncoder.sol:
--  499                  additionalRecipientsLength *
-+  499                  additionalRecipientsLength <<
--  500:                 OneWord;
-+  500:                 5;
 -  567:             uint256 headAndTailSize = length * OneWord;
 +  567:             uint256 headAndTailSize = length << 5;
 -  678:             MemoryPointer srcHeadEnd = srcHead.offset(length * OneWord);
@@ -197,9 +158,125 @@ seaport/contracts/lib/ConsiderationEncoder.sol:
     }
 ```
 
-## 4. Optimized operations
+Consider also adding a constant so that the code can be maintainable (`OneWordShiftLength`?)
+
+**yarn profile**
+
+```diff
+===============================================================================================
+| method                         |          min |           max |           avg |       calls |
+===============================================================================================
+- | matchAdvancedOrders            | +12 (+0.01%) |     -12 (0%) | -471 (-0.19%) | +2 (+2.67%) |
++ | matchAdvancedOrders            | -84 (-0.05%) |     -12 (0%) | -472 (-0.19%) | +2 (+2.67%) |
+- | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -234 (-0.09%) | +2 (+1.34%) |
++ | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -236 (-0.09%) | +2 (+1.34%) |
+```
+
+Added together, the max gas saving counted here is 98.
+
+## 3. Using a positive conditional flow to save a NOT opcode
 
 *Estimated savings: 3 gas*
+*Max savings according to `yarn profile`: 150 gas*
+
+The following function either revert or returns some value. To save some gas (NOT opcode costing 3 gas), switch to a positive statement:
+
+```diff
+File: OrderValidator.sol
+863:     function _revertOrReturnEmpty(
+864:         bool revertOnInvalid,
+865:         bytes32 contractOrderHash
+866:     )
+867:         internal
+868:         pure
+869:         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
+870:     {
+- 871:         if (!revertOnInvalid) { //@audit-issue save the NOT opcode
++ 871:         if (revertOnInvalid) {
+- 872:             return (contractOrderHash, 0, 0);
++ 872:             _revertInvalidContractOrder(contractOrderHash);
+873:         }
+874: 
+- 875:         _revertInvalidContractOrder(contractOrderHash);
++ 875:         return (contractOrderHash, 0, 0);
+876:     }
+```
+
+**yarn profile**
+
+```diff
+==============================================================================================
+| method                         |          min |          max |           avg |       calls |
+==============================================================================================
+- | cancel                         |        41219 |        58403 |         54019 |          16 |
++ | cancel                         | -12 (-0.03%) |        58403 |  -17 (-0.03%) |          16 |
+- | fulfillAdvancedOrder           | +12 (+0.01%) |       225187 |       -7 (0%) |         182 |
++ | fulfillAdvancedOrder           | +12 (+0.01%) |       225187 |  -11 (-0.01%) |         182 |
+- | fulfillAvailableAdvancedOrders |       149965 |       217284 |       +3 (0%) |          22 |
++ | fulfillAvailableAdvancedOrders |       149965 |       217284 |       -5 (0%) |          22 |
+- | fulfillOrder                   | -12 (-0.01%) |       225067 |       -1 (0%) |         105 |
++ | fulfillOrder                   | -24 (-0.02%) |       225067 |       -3 (0%) |         105 |
+- | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -234 (-0.09%) | +2 (+1.34%) |
++ | matchOrders                    |       158290 | -24 (-0.01%) | -241 (-0.09%) | +2 (+1.34%) |
+- | validate                       |        53206 |        83915 |       -1 (0%) |          27 |
++ | validate                       | -72 (-0.14%) | -48 (-0.06%) |  -18 (-0.02%) |          27 |
+- ==============================================================================================
+- | runtime size                   |        23583 |              |               |             |
++ | runtime size                   | -15 (-0.06%) |              |               |             |
+- | init code size                 | +78 (+0.29%) |              |               |             |
++ | init code size                 | +63 (+0.24%) |              |               |             |
+==============================================================================================
+```
+
+Added together, the max gas saving counted here is 150.
+
+## 4. Swap conditions for a better happy path
+
+*Estimated savings: 6 gas*
+*Max savings according to `yarn profile`: 38 gas*
+
+When a staticcall ends in failure, there will rarely, if ever, be a case of `returndatasize()` being non-zero. However, most often with a staticcall, `success` will be true, while the `returndatasize()` has a higher probability of being 0. The consequence is that, in the current order of conditions, both conditions are more likely to be evaluated. Furthermore, the RETURNDATASIZE opcode costs 2 gas while a MLOAD costs 3 gas. Consider swapping both conditions here for a better happy path:
+
+```diff
+File: PointerLibraries.sol
+215:         assembly {
+216:             let success := staticcall(
+217:                 gas(),
+218:                 IdentityPrecompileAddress,
+219:                 src,
+220:                 size,
+221:                 dst,
+222:                 size
+223:             )
+- 224:             if or(iszero(success), iszero(returndatasize())) {
++ 224:             if or(iszero(returndatasize()), iszero(success)) {
+225:                 revert(0, 0)
+226:             }
+227:         }
+```
+
+**yarn profile**
+
+```diff
+==============================================================================================
+| method                         |          min |          max |           avg |       calls |
+==============================================================================================
+- | fulfillAdvancedOrder           | +12 (+0.01%) |       225187 |       -7 (0%) |         182 |
++ | fulfillAdvancedOrder           | +12 (+0.01%) |       225187 |  -31 (-0.02%) |         182 |
+- | fulfillAvailableAdvancedOrders |       149965 |       217284 |       +3 (0%) |          22 |
++ | fulfillAvailableAdvancedOrders |       149965 |       217284 |       +2 (0%) |          22 |
+- | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -234 (-0.09%) | +2 (+1.34%) |
++ | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -235 (-0.09%) | +2 (+1.34%) |
+- | validate                       |        53206 |        83915 |       -1 (0%) |          27 |
++ | validate                       |        53206 | -12 (-0.01%) |       -1 (0%) |          27 |
+```
+
+Added together, the max gas saving counted here is 38.
+
+## 5. Optimized operations
+
+*Estimated savings: 3 gas*
+*Max savings according to `yarn profile`: 58 gas*
 
 Tested on Remix: The optimized equivalent of `or(eq(a, 2), eq(a, 3))` is `and(lt(a, 4),gt(a, 1))` (saving 3 gas)
 
@@ -252,60 +329,30 @@ File: ZoneInteraction.sol
 150:     }
 ```
 
-## 5. Using a positive conditional flow to save a NOT opcode
-
-*Estimated savings: 3 gas*
-
-The following function either revert or returns some value. To save some gas (NOT opcode costing 3 gas), switch to a positive statement:
+**yarn profile**
 
 ```diff
-File: OrderValidator.sol
-863:     function _revertOrReturnEmpty(
-864:         bool revertOnInvalid,
-865:         bytes32 contractOrderHash
-866:     )
-867:         internal
-868:         pure
-869:         returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
-870:     {
-- 871:         if (!revertOnInvalid) { //@audit-issue save the NOT opcode
-+ 871:         if (revertOnInvalid) {
-- 872:             return (contractOrderHash, 0, 0);
-+ 872:             _revertInvalidContractOrder(contractOrderHash);
-873:         }
-874: 
-- 875:         _revertInvalidContractOrder(contractOrderHash);
-+ 875:         return (contractOrderHash, 0, 0);
-876:     }
+==============================================================================================
+| method                         |          min |          max |           avg |       calls |
+==============================================================================================
+- | cancel                         |        41219 |        58403 |         54019 |          16 |
++ | cancel                         | +12 (+0.03%) | -12 (-0.02%) |   -3 (-0.01%) |          16 |
+- | fulfillAdvancedOrder           | +12 (+0.01%) |       225187 |       -7 (0%) |         182 |
++ | fulfillAdvancedOrder           |        96287 |       225187 |       +2 (0%) |         182 |
+- | fulfillBasicOrder              |        91377 |     -12 (0%) |       -5 (0%) |         187 |
++ | fulfillBasicOrder              | -24 (-0.03%) |      1621539 |       -1 (0%) |         187 |
+- | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -234 (-0.09%) | +2 (+1.34%) |
++ | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -241 (-0.09%) | +2 (+1.34%) |
+- | validate                       |        53206 |        83915 |       -1 (0%) |          27 |
++ | validate                       |        53206 |        83915 |   -4 (-0.01%) |          27 |
 ```
 
-## 6. Swap conditions for a better happy path
+Added together, the max gas saving counted here is 58.
 
-*Estimated savings: 6 gas*
-
-When a staticcall ends in failure, there will rarely, if ever, be a case of `returndatasize()` being non-zero. However, most often with a staticcall, `success` will be true, while the `returndatasize()` has a higher probability of being 0. The consequence is that, in the current order of conditions, both conditions are more likely to be evaluated. Furthermore, the RETURNDATASIZE opcode costs 2 gas while a MLOAD costs 3 gas. Consider swapping both conditions here for a better happy path:
-
-```diff
-File: PointerLibraries.sol
-215:         assembly {
-216:             let success := staticcall(
-217:                 gas(),
-218:                 IdentityPrecompileAddress,
-219:                 src,
-220:                 size,
-221:                 dst,
-222:                 size
-223:             )
-- 224:             if or(iszero(success), iszero(returndatasize())) {
-+ 224:             if or(iszero(returndatasize()), iszero(success)) {
-225:                 revert(0, 0)
-226:             }
-227:         }
-```
-
-## 7. Pre-decrements cost less than post-decrements
+## 6. Pre-decrements cost less than post-decrements
 
 *Estimated savings: 5 gas per iteration*
+*Max savings according to `yarn profile`: 61 gas*
 
 For a `uint256 maximumFulfilled` variable, the following is true with the Optimizer enabled at 10k:
 
@@ -318,3 +365,19 @@ File: OrderCombiner.sol
 - 272:                 maximumFulfilled--;
 + 272:                 --maximumFulfilled;
 ```
+
+**yarn profile**
+
+```diff
+==============================================================================================
+| method                         |          min |          max |           avg |       calls |
+==============================================================================================
+- | matchAdvancedOrders            | +12 (+0.01%) |     -12 (0%) | -471 (-0.19%) | +2 (+2.67%) |
++ | matchAdvancedOrders            | -36 (-0.02%) |     -12 (0%) | -472 (-0.19%) | +2 (+2.67%) |
+- | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -234 (-0.09%) | +2 (+1.34%) |
++ | matchOrders                    | -12 (-0.01%) | -24 (-0.01%) | -235 (-0.09%) | +2 (+1.34%) |
+- | validate                       |        53206 |        83915 |       -1 (0%) |          27 |
++ | validate                       |        53206 | -12 (-0.01%) |   -4 (-0.01%) |          27 |
+```
+
+Added together, the max gas saving counted here is 61.
