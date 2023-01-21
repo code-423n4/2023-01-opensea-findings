@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "0xbrett8571",
+  "risk": "3",
+  "title": "Unchecked Loops and Use of `selfbalance()` Function Vulnerability in Smart Contract.",
+  "issueId": 34,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/34"
+}
