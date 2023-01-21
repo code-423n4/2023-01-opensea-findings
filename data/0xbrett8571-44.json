@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "0xbrett8571",
+  "risk": "3",
+  "title": "Out-of-Memory Exception in `_performERC1155BatchTransfers` Function Leading to Loss of Tokens.",
+  "issueId": 44,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/44"
+}
