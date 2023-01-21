@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "0xbrett8571",
+  "risk": "3",
+  "title": "Unhandled Revert in `_performERC721Transfer` Function Resulting in Loss of Tokens.",
+  "issueId": 43,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/43"
+}
