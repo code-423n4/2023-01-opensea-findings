@@ -73,9 +73,23 @@ File: FulfillmentApplier.sol
 97:         ) {
 ```
 
-**POC**
+**Logic POC**
 
-This little POC (use `forge test -m test_XorEq`) proves that the formulas are equivalent:
+Given 2 variables `a` and `b` represented as such:
+
+```js
+0 0 0 0 0 1 1 0 <- a
+0 1 1 0 0 1 1 0 <- b
+```
+
+The only way to have `a == b` would be that every `0` and `1` match on both variables. Meaning that a XOR (operator `^`) would evaluate to 0 (`(a ^ b) == 0`).
+Now, if `a != b`, this means that there's at least somewhere a `1` and a `0` not matching between `a` and `b`, making `(a ^ b) != 0`.
+
+Both formulas are logically equivalent, but using the XOR bitwise operator is cheaper gas-wise.
+
+**Coded POC**
+
+This little POC (use `forge test -m test_XorEq`) also proves that the formulas are equivalent:
 
 ```solidity
     function test_XorEq(uint8 a, uint8 b, address c, address d, uint256 e, uint256 f) external {
@@ -114,6 +128,8 @@ This is the diff between the contest repo's `yarn profile` and the added suggest
 ```
 
 Added together, the average gas saving counted here is 196.
+
+Consider applying the suggested equivalence and **add a comment mentioning what this is equivalent to**, as this is less human-readable, but still understandable once it's been taught.
 
 ## 3. Shift left by 5 instead of multiplying by 32
 
