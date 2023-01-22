@@ -17,6 +17,8 @@ Some of the code bases, particularly those entailing assembly, are lacking parti
 Here are some of the instances entailed:
 
 [File: PointerLibraries.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/helpers/PointerLibraries.sol)
+[File: ConduitStructs.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/conduit/lib/ConduitStructs.sol)
+[File: ConduitEnums.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/conduit/lib/ConduitEnums.sol)
 
 ## Typo/grammatical mistakes
 [File: ConsiderationDecoder.sol#L41](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationDecoder.sol#L41)
@@ -87,3 +89,43 @@ For instance, the specific instance below may be refactored as follows:
 +            require(conduitController != address(0));
 +    }
 ```
+## `abi.encodePacked()` should not be used with dynamic types when passing the result to a hash function such as `keccak256()`
+Use abi.encode() instead which will pad items to 32 bytes, which will prevent hash collisions (e.g. abi.encodePacked(0x123,0x456) => 0x123456 => abi.encodePacked(0x1,0x23456), but abi.encode(0x123,0x456) => 0x0...1230...456). "Unless there is a compelling reason, abi.encode should be preferred". If there is only one argument to abi.encodePacked(), it can often be cast to bytes() or bytes32() instead. If all arguments are strings and or bytes, bytes.concat() should be used instead.
+
+For instance, the specific instance below may be refactored as follows:
+
+[File: ConduitController.sol#L72-L85](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/conduit/ConduitController.sol#L72-L85)
+
+```diff
+        conduit = address(
+            uint160(
+                uint256(
+                    keccak256(
+-                        abi.encodePacked(
++                        abi.encode(
+                            bytes1(0xff),
+                            address(this),
+                            conduitKey,
+                            _CONDUIT_CREATION_CODE_HASH
+                        )
+                    )
+                )
+            )
+        );
+```
+## Solidity's Style Guide on contract layout
+According to Solidity's Style Guide below:
+
+https://docs.soliditylang.org/en/v0.8.17/style-guide.html
+
+In order to help readers identify which functions they can call, and find the constructor and fallback definitions more easily, functions should be grouped according to their visibility and ordered in the following manner:
+
+constructor, receive function (if exists), fallback function (if exists), external, public, internal, private
+
+And, within a grouping, place the view and pure functions last.
+
+Additionally, inside each contract, library or interface, use the following order:
+
+type declarations, state variables, events, modifiers, functions
+
+Consider adhering to the above guidelines for all contract instances entailed.
