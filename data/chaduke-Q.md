@@ -5,3 +5,5 @@ QA2. https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc
 We should emit the old status here as well.
 
 
+QA2. https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/conduit/ConduitController.sol#L124-L128
+We should emit an event here to indicate the change of status. 
