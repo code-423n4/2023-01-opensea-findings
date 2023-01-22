@@ -6,14 +6,14 @@ Gas Issues | 6 | Around 650
 
 **Table of Contents:**
 
-- [1. Using XOR bitwise equivalent](#1-using-xor-bitwise-equivalent)
+- [1. Using XOR (`^`) and OR (`|`) bitwise equivalents](#1-using-xor--and-or--bitwise-equivalents)
 - [2. Shift left by 5 instead of multiplying by 32](#2-shift-left-by-5-instead-of-multiplying-by-32)
 - [3. Using a positive conditional flow to save a NOT opcode](#3-using-a-positive-conditional-flow-to-save-a-not-opcode)
 - [4. Swap conditions for a better happy path](#4-swap-conditions-for-a-better-happy-path)
 - [5. Optimized operations](#5-optimized-operations)
 - [6. Pre-decrements cost less than post-decrements](#6-pre-decrements-cost-less-than-post-decrements)
 
-## 1. Using XOR bitwise equivalent
+## 1. Using XOR (`^`) and OR (`|`) bitwise equivalents
 
 *Estimated savings: 73 gas*
 *Max savings according to `yarn profile`: 282 gas*
@@ -39,17 +39,36 @@ File: FulfillmentApplier.sol
 
 **Logic POC**
 
-Given 2 variables `a` and `b` represented as such:
+Given 4 variables `a`, `b`, `c` and `d` represented as such:
 
 ```js
 0 0 0 0 0 1 1 0 <- a
 0 1 1 0 0 1 1 0 <- b
+0 0 0 0 0 0 0 0 <- c
+1 1 1 1 1 1 1 1 <- d
 ```
 
-The only way to have `a == b` would be that every `0` and `1` match on both variables. Meaning that a XOR (operator `^`) would evaluate to 0 (`(a ^ b) == 0`).
+To have `a == b` means that every `0` and `1` match on both variables. Meaning that a XOR (operator `^`) would evaluate to 0 (`(a ^ b) == 0`), as it excludes by definition any equalities.
 Now, if `a != b`, this means that there's at least somewhere a `1` and a `0` not matching between `a` and `b`, making `(a ^ b) != 0`.
 
-Both formulas are logically equivalent, but using the XOR bitwise operator is cheaper gas-wise.
+Both formulas are logically equivalent and using the XOR bitwise operator costs actually the same amount of gas:
+
+```solidity
+      function xOrEquivalence(uint a, uint b) external returns (bool) {
+        //return a != b; //370
+        //return a ^ b != 0; //370
+```
+
+However, it is much cheaper to use the bitwise OR operator (`|`) than comparing the truthy or falsy values:
+
+```solidity
+    function xOrOrEquivalence(uint a, uint b, uint c, uint d) external returns (bool) {
+        //return (a != b || c != d); // 495
+        //return (a ^ b | c ^ d) != 0; // 442
+    }
+```
+
+These are logically equivalent too, as the OR bitwise operator (`|`) would result in a `1` somewhere if any value is not `0` between the XOR (`^`) statements, meaning if any XOR (`^`) statement verifies that its arguments are different.
 
 **Coded POC**
 
