@@ -182,6 +182,9 @@ As an example, consider replacing `>=` with the strict counterpart `>` in the fo
 
 ```diff
 -        if (channelIndex >= totalChannels) {
+// Rationale for subtracting 1 on the right side of the inequality:
+// x >= 10, [10, 11, 12, ...]
+// x > 10 - 1 is the same as x > 9, [10, 11, 12 ...] 
 +        if (channelIndex > totalChannels - 1) {
 ```
 ## `||` costs less gas than its equivalent `&&`
