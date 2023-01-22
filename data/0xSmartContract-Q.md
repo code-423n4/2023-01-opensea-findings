@@ -24,8 +24,9 @@ Total 2 issues
 | [N-11] |Add NatSpec Mapping comment | 6 |
 | [N-12] |Initializing state variables with their default values is confusing|9 |
 | [N-13] |Add to Event in  `receive()` function |1 |
+| [N-14] |Floating pragma |All Contracts |
 
-Total 13 issues
+Total 14 issues
 
 ### [L-01] Missing Event for initiazings
 
@@ -581,3 +582,16 @@ Many utilities and analysis frameworks make use of event-emits and are monitored
 
 **Recommendation:**
 Add Event-Emit
+
+
+### [N-14 ] Floating pragma
+
+**Description:**
+Contracts should be deployed with the same compiler version and flags that they have been tested with thoroughly. Locking the pragma helps to ensure that contracts do not accidentally get deployed using, for example, an outdated compiler version that might introduce bugs that affect the contract system negatively.
+https://swcregistry.io/docs/SWC-103
+
+Floating Pragma List: 
+pragma ^0.8.13 - ^0.8.17  (all contracts)
+
+**Recommendation:**
+Lock the pragma version and also consider known bugs (https://github.com/ethereum/solidity/releases) for the compiler version that is chosen.
