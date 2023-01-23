@@ -33,8 +33,8 @@ The protocol is using low level calls with solidity version less then 0.8.14 whi
 
 ### Lines of code
 
-- [TokenTransferrer.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/TokenTransferrer.sol#L42)
-- [ConsiderationStructs.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationStructs.sol#L290)
+- [TokenTransferrer.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/TokenTransferrer.sol)
+- [ConsiderationStructs.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationStructs.sol)
 - [ConsiderationEncoder.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationEncoder.sol)
 - [PointerLibraries.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/helpers/PointerLibraries.sol)
 - [Conduit.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/conduit/Conduit.sol)
@@ -45,7 +45,7 @@ Consider upgrading to solidity 0.8.17
 
 ## [L-02] `Address(0)` checks
 
-Check of address(0) to protect the code from (0x0000000000000000000000000000000000000000) address problem just in case. This is best practice or instead of suggesting that they verify _address != address(0), you could add some good NatSpec comments explaining what is valid and what is invalid and what are the implications of accidentally using an invalid address.
+Check of `address(0)` to protect the code from `(0x0000000000000000000000000000000000000000)` address problem just in case. This is best practice or instead of suggesting that they verify `_address != address(0)`, you could add some good NatSpec comments explaining what is valid and what is invalid and what are the implications of accidentally using an invalid address.
 
 ```solidity
         constructor(address conduitController) Consideration(conduitController) {}
@@ -107,7 +107,7 @@ Line coverage percentage should be 100%.
 
 ## [NC-03] Need Fuzzing test
 
-In total 54 contracts, more than 200 `unchecked{}` are used, the functions used are critical. For this reason, there must be fuzzing tests in the tests of the project. Not seen in tests.
+In total 14 contracts, more than 54 `unchecked{}` are used, the functions used are critical. For this reason, there must be fuzzing tests in the tests of the project. Not seen in tests.
 
 ### Lines of code
 
