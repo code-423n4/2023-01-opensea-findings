@@ -1,0 +1,4 @@
+# Amount of ERC721 transfer should be checked
+The amount of ERC721 transfer should be one. It's check in [lib/Executor.sol(L348-L350)](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/Executor.sol#L348-L350) and [lib/Executor.sol(L209-L211)](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/Executor.sol#L209-L211) but only in `conduitKey == bytes32(0)` cases. It should be checked whether via conduit or not. Otherwise it may cause failure when conduit execute it later.
+
+Also, the related [natspec description of _transferERC721() function](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/Executor.sol#L324-L325) doesn't seem correct. The `amount` must be 1 for ERC721, not `identifier`.
