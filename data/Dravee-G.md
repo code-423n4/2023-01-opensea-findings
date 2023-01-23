@@ -4,6 +4,12 @@ Risk Rating | Number of issues | Estimated savings
 --- | --- | ---
 Gas Issues | 6 | Around 650
 
+**Codebase Impressions**
+
+The codebase is amazingly optimized, as expected from OpenSea. All storage operations are well done and even take into account the SLOT packings (like [here where it isn't obvious and the regular dev would've moved the SSTORE into the condition](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/OrderValidator.sol#L82-L87) or [here where `memory` would've costed more](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/OrderValidator.sol#L841)).
+
+The suggestions down below took some research: everything has been justified with POCs, code and even the opcodes on the stack when necessary.
+
 **Table of Contents:**
 
 - [1. Using XOR (`^`) and OR (`|`) bitwise equivalents](#1-using-xor--and-or--bitwise-equivalents)
