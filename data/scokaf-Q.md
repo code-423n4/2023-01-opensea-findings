@@ -26,3 +26,27 @@ Manual Analysis
 
 Remove ^ in “pragma solidity ^0.8.9” and change it to “pragma solidity 0.8.9” to be consistent with the rest of the contracts.
 
+
+# 2: USE CONSTANTS FOR NUMBERS
+
+Vulnerability details
+
+### Impact
+
+In several locations in the code, numbers like 0x20, 0x47, 0x60 are used. It is quite easy to make a mistake somewhere when comparing values.
+
+## Proof of Concept
+
+https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/Seaport.sol#L104 
+
+https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/Seaport.sol#L105 
+
+https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/Seaport.sol#L106 
+
+## Tools Used
+
+Manual Analysis
+
+## Recommended Mitigation Steps
+
+Recommend defining constants for the numbers used throughout the code.
