@@ -137,7 +137,7 @@ type declarations, state variables, events, modifiers, functions
 
 Consider adhering to the above guidelines for all contract instances entailed.
 
-## Descriptive and Verbose Options
+## Descriptive and verbose options
 Consider making the naming of local variables more verbose and descriptive so all other peer developers would better be able to comprehend the intended statement logic, significantly enhancing the code readability.
 
 For instance, the local variables of the function below may be rewritten as follows:
