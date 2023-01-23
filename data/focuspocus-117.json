@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "focuspocus",
+  "risk": "2",
+  "title": "_locateCurrentAmount function, there is an assembly operation that is dividing by duration without a zero check",
+  "issueId": 117,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/117"
+}
