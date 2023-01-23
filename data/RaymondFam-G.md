@@ -160,7 +160,7 @@ For instance, the `i--` instance below may be refactored as follows:
 ## Ternary over `if ... else`
 Using ternary operator instead of the if else statement saves gas.
 
-For instance, the specif instance below may be refactored as follows:
+For instance, the specific instance below may be refactored as follows:
 
 [File: OrderCombiner.sol#L322-L332](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/OrderCombiner.sol#L322-L332)
 
