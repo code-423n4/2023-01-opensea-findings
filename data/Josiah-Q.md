@@ -99,6 +99,30 @@ type declarations, state variables, events, modifiers, functions
 
 Where possible, consider adhering to the above guidelines for all contract instances entailed.
 
+## CONSTANT VARIABLES COMPLIANCE WITH SOLIDITY'S STYLE GUIDE
+It is recommended that constant variables utilize the UPPER_CASE_WITH_UNDERSCORES format.
+
+Here is a contract where all other constants should conform to the fully capitalized standard adopted on lines 52 - 54.
+
+[ConsiderationConstants.sol#L52-L54](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationConstants.sol#L52-L54)
+
+```
+...
+uint256 constant information_version_offset = 0;
+uint256 constant information_version_cd_offset = 0x60;
+uint256 constant information_domainSeparator_offset = 0x20;
+uint256 constant information_conduitController_offset = 0x40;
+uint256 constant information_versionLengthPtr = 0x63;
+uint256 constant information_versionWithLength = 0x03312e32; // 1.2
+uint256 constant information_length = 0xa0;
+
+52: uint256 constant _NOT_ENTERED = 1;
+53: uint256 constant _ENTERED = 2;
+54: uint256 constant _ENTERED_AND_ACCEPTING_NATIVE_TOKENS = 3;
+
+uint256 constant Offset_fulfillAdvancedOrder_criteriaResolvers = 0x20;
+...
+```
 ## DOS ON UNBOUNDED LOOP
 Unbounded loop could lead to OOG (Out of Gas) denying the users of needed services. It is recommended setting a threshold for the array length if the array could grow to or entail an excessive size. 
 
@@ -221,4 +245,88 @@ enum ConduitItemType {
     ERC721,
     ERC1155
 }
+```
+## TYPO ERRORS
+[OrderValidator.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/OrderValidator.sol)
+
+```
+    @ status
+38: *         and updating their status. 
+
+    @ offer
+370:     * @dev Internal pure function to check the compatibility of two offer
+```
+[ConsiderationDecoder.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationDecoder.sol)
+
+```
+    @ ... to the nearest ...
+41:            // Derive the size of the bytes array, rounding up to nearest word
+
+    @ length
+875:                        // Set first word of scratch space to 0 so length of
+876:                        // offer/consideration are set to 0 on invalid encoding.
+```
+## THE USE OF DELETE TO RESET VARIABLES
+`delete a` assigns the initial value for the type to `a`. i.e. for integers it is equivalent to `a = 0`, but it can also be used on arrays, where it assigns a dynamic array of length zero or a static array of the same length with all elements reset. For structs, it assigns a struct with all members reset. Similarly, it can also be used to set an address to zero address or a boolean to false. It has no effect on whole mappings though (as the keys of mappings may be arbitrary and are generally unknown). However, individual keys and what they map to can be deleted: If `a` is a mapping, then `delete a[x]` will delete the value stored at x.
+
+The delete key better conveys the intention and is also more idiomatic.
+
+Here are some of the instances found.
+
+[FulfillmentApplier.sol#L78-L79](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/FulfillmentApplier.sol#L78-L79)
+
+```
+            considerationExecution.offerer = address(0);
+            considerationExecution.item.recipient = payable(0);
+```
+[OrderCombiner.sol#L744](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/OrderCombiner.sol#L744)
+
+```
+                    availableOrders[i] = false;
+```
+## THE USE OF DISTINCT VARIABLES
+Making the naming of local variables more distinct could prove a long way in helping developers and users to better comprehend the intended function signature, significantly enhancing code readability.
+
+Her are some of the instances found.
+
+[PointerLibraries.sol#L129-L153](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/helpers/PointerLibraries.sol#L129-L153)
+
+```
+    function lt(
+        ReturndataPointer a,
+        ReturndataPointer b
+    ) internal pure returns (bool c) {
+        assembly {
+            c := lt(a, b)
+        }
+    }
+
+    function gt(
+        ReturndataPointer a,
+        ReturndataPointer b
+    ) internal pure returns (bool c) {
+        assembly {
+            c := gt(a, b)
+        }
+    }
+
+    function eq(
+        ReturndataPointer a,
+        ReturndataPointer b
+    ) internal pure returns (bool c) {
+        assembly {
+            c := eq(a, b)
+        }
+```
+## MODERN MODULARITY ON IMPORT USAGES
+For cleaner Solidity code in conjunction with the rule of modularity and modular programming, it is recommended using named imports with curly braces instead of adopting the global import approach.
+
+Here are some of the instances found that could join their counterparts in adopting this method.
+
+[ConsiderationDecoder.sol#L20-L22](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationDecoder.sol#L20-L22)
+
+```
+import "./ConsiderationConstants.sol";
+
+import "../helpers/PointerLibraries.sol";
 ```
