@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "MHKK33",
+  "risk": "3",
+  "title": "The _verifyTime function only reverts if revertOnInvalid is true and the order is not active. ",
+  "issueId": 73,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/73"
+}
