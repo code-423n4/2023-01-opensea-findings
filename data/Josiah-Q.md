@@ -105,3 +105,120 @@ Unbounded loop could lead to OOG (Out of Gas) denying the users of needed servic
 Here are some of the instances found.
 
 [Conduit.sol#L99](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/conduit/Conduit.sol#L99)
+
+```
+        for (uint256 i = 0; i < totalStandardTransfers; ) {
+```
+[TransferHelper.sol#L124](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/helpers/TransferHelper.sol#L124)
+
+```
+            for (uint256 i = 0; i < numTransfers; ++i) {
+```
+[BasicOrderFulfiller.sol#L1079](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/BasicOrderFulfiller.sol#L1079)
+
+```
+        for (uint256 i = 0; i < totalAdditionalRecipientsDataSize; ) {
+```
+## USE MORE RECENT VERSIONS OF SOLIDITY 
+Lower versions like 0.8.7, 0.8.13 etc are being used in numerous contracts. For better security, it is best practice to use the latest Solidity version, 0.8.17.
+
+Please visit the versions security fix list in the link below for detailed info:
+
+https://github.com/ethereum/solidity/blob/develop/Changelog.md
+
+## INTERFACES AND LIBRARIES ON THE SAME FILE
+Some contracts have interfaces and/or libraries showing up in their entirety in the same file to facilitate the ease of referencing on the same page. This has, in certain instances, made the already large contract size to house an excessive code base. Additionally, it might create difficulty locating them when attempting to cross reference the specific interfaces embedded elsewhere but not saved into a particular .sol file.
+
+Consider saving the interfaces and libraries entailed respectively, and having them imported like all others.
+
+Here are some of the instances found.
+
+[PointerLibraries.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/helpers/PointerLibraries.sol)
+
+```
+47: library CalldataPointerLib {
+
+128: library ReturndataPointerLib {
+
+209: library MemoryPointerLib {
+
+296: library CalldataReaders {
+
+1188: library ReturndataReaders {
+
+2177: library MemoryReaders {
+
+3049: library MemoryWriters {
+```
+## NATSPEC SHOULD BE ADEQUATE
+As denoted in the link below:
+
+https://docs.soliditylang.org/en/v0.8.15/natspec-format.html
+
+It is recommended that Solidity contracts are fully annotated using NatSpec for all public interfaces (everything in the ABI). It is clearly stated in the Solidity official documentation. In complex projects such as deFi, the interpretation of all functions and their arguments and returns is important for code readability and auditability.
+
+Additionally, some of the code bases, particularly those entailing assembly, are lacking partial/full NatSpec that will be of added values to the users and developers if adequately provided.
+
+Here are some of the instance found.
+
+[PointerLibraries.sol#L47-L73](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/helpers/PointerLibraries.sol#L47-L73)
+
+```
+library CalldataPointerLib {
+    function lt(
+        CalldataPointer a,
+        CalldataPointer b
+    ) internal pure returns (bool c) {
+        assembly {
+            c := lt(a, b)
+        }
+    }
+
+    function gt(
+        CalldataPointer a,
+        CalldataPointer b
+    ) internal pure returns (bool c) {
+        assembly {
+            c := gt(a, b)
+        }
+    }
+
+    function eq(
+        CalldataPointer a,
+        CalldataPointer b
+    ) internal pure returns (bool c) {
+        assembly {
+            c := eq(a, b)
+        }
+    }
+```
+[ConduitStructs.sol#L6-L21](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/conduit/lib/ConduitStructs.sol#L6-L21)
+
+```
+struct ConduitTransfer {
+    ConduitItemType itemType;
+    address token;
+    address from;
+    address to;
+    uint256 identifier;
+    uint256 amount;
+}
+
+struct ConduitBatch1155Transfer {
+    address token;
+    address from;
+    address to;
+    uint256[] ids;
+    uint256[] amounts;
+}
+```
+[ConduitEnums.sol](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/conduit/lib/ConduitEnums.sol)
+
+```
+enum ConduitItemType {
+    NATIVE, // unused
+    ERC20,
+    ERC721,
+    ERC1155
+}
+```
