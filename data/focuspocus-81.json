@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "focuspocus",
+  "risk": "2",
+  "title": "The getMaxTreeBrackets function does not handle the case when the suffixes array cannot be created due to memory constraints.",
+  "issueId": 81,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/81"
+}
