@@ -39,6 +39,13 @@ Here are some of the instances entailed:
 - *         and updating their status.
 + *         and updating their statuses.
 ```
+[File: ConsiderationDecoder.sol#L875-L876](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationDecoder.sol#L875-L876)
+
+```diff
+-                        // Set first word of scratch space to 0 so length of
++                        // Set first word of scratch space to 0 so lengths of
+                        // offer/consideration are set to 0 on invalid encoding.
+```
 ## `constant` variables should be capitalized
 Constants should be named with all capital letters with underscores separating words if need be. 
 
@@ -129,3 +136,61 @@ Additionally, inside each contract, library or interface, use the following orde
 type declarations, state variables, events, modifiers, functions
 
 Consider adhering to the above guidelines for all contract instances entailed.
+
+## Descriptive and Verbose Options
+Consider making the naming of local variables more verbose and descriptive so all other peer developers would better be able to comprehend the intended statement logic, significantly enhancing the code readability.
+
+For instance, the local variables of the function below may be rewritten as follows:
+
+[File: PointerLibraries.sol#L48-L55](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/helpers/PointerLibraries.sol#L48-L55)
+
+```diff
+    function lt(
+-        CalldataPointer a,
++        CalldataPointer aCdPtr,
+-        CalldataPointer b
++        CalldataPointer bCdPtr
+-    ) internal pure returns (bool c) {
++    ) internal pure returns (bool status_) {
+        assembly {
+-            c := lt(a, b)
++            status_ := lt(aCdPtr, bCdPtr)
+        }
+    }
+```
+## Modularity on import usages
+For cleaner Solidity code in conjunction with the rule of modularity and modular programming, use named imports with curly braces instead of adopting the global import approach.
+
+For instance, the import instances below could be refactored conforming to most other instances in the code bases as follows:
+
+[File: ConsiderationDecoder.sol#L20-L22](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationDecoder.sol#L20-L22)
+
+```diff
+- import "./ConsiderationConstants.sol";
++ import {ConsiderationConstants} from "./ConsiderationConstants.sol";
+
+- import "../helpers/PointerLibraries.sol";
++ import {PointerLibraries} from "../helpers/PointerLibraries.sol";
+```
+## Function Calls in Loop Could Lead to Denial of Service
+Function calls made in unbounded loop are error-prone with potential resource exhaustion as it can trap the contract due to the gas limitations or failed transactions. 
+
+For instance, the iteration in the for loop below over each pointer, word by word, until the tail is reached could end up running out of gas if a huge array devoid of a boundary option is entailed:
+
+[File: ConsiderationDecoder.sol#L399-L405](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationDecoder.sol#L399-L405)
+
+```solidity
+            for (uint256 offset = 0; offset < tailOffset; offset += OneWord) {
+                // Resolve Order calldata offset, use it to decode and copy from
+                // calldata, and write resultant AdvancedOrder offset to memory.
+                mPtrHead.offset(offset).write(
+                    _decodeOrderAsAdvancedOrder(cdPtrHead.pptr(offset))
+                );
+            }
+```
+## Use a more recent version of solidity
+The protocol adopts version 0.8.7 on quite a number of contracts. For better security, it is best practice to use the latest Solidity version, 0.8.17.
+
+Security fix list in the versions can be found in the link below:
+
+https://github.com/ethereum/solidity/blob/develop/Changelog.md
