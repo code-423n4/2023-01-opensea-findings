@@ -166,7 +166,7 @@ For instance, the specific instance below may be refactored as follows:
 
 ```solidity
  offerItem.startAmount == offerItem.endAmount
-     ? offerItem.startAmount = endAmount;
+     ? offerItem.startAmount = endAmount
      : offerItem.startAmount = _getFraction(
                             numerator,
                             denominator,
