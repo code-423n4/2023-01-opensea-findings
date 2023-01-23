@@ -5,7 +5,7 @@
 | [L-01] | Low level calls with solidity version 0.8.14 and lower can result in optimiser bug | 5             |
 
 ### Total Non-Critical issues
-   
+
 | Number  | Issues Details                                                                              | Context        |
 |---------|---------------------------------------------------------------------------------------------|----------------|
 | [NC-01] | Include `@return` parameters in NatSpec comments                                            | All Contracts  |
