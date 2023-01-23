@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "focuspocus",
+  "risk": "2",
+  "title": "Lack of input validation: The contract does not perform any checks on the inputs passed to the functions, which could allow an attacker to pass malicious data and trigger wrong behavior or errors.",
+  "issueId": 112,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/112"
+}
