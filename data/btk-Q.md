@@ -3,9 +3,11 @@
 | Number | Issues Details                                                                     | Context       |
 |--------|------------------------------------------------------------------------------------|---------------|
 | [L-01] | Low level calls with solidity version 0.8.14 and lower can result in optimiser bug | 5             |
+| [L-02] | `Address(0)` checks                                                                | 11            |
+| [L-03] | Multiple Pragma used                                                               | All Contracts |
 
 ### Total Non-Critical issues
-
+   
 | Number  | Issues Details                                                                              | Context        |
 |---------|---------------------------------------------------------------------------------------------|----------------|
 | [NC-01] | Include `@return` parameters in NatSpec comments                                            | All Contracts  |
@@ -16,13 +18,12 @@
 | [NC-06] | Constants in comparisons should appear on the left side                                     | 11             |
 | [NC-07] | Use `bytes.concat()` and `string.concat()`                                                  | 3              |
 | [NC-08] | Add `I` prefix to interface contracts                                                       | All Interfaces |
-| [NC-09] | Insufficient coverage                                                                       | All Contracts  |
-| [NC-10] | Generate perfect code headers every time                                                    | All Contracts  |
-| [NC-11] | Lock pragmas to specific compiler version                                                   | All Contracts  |
-| [NC-12] | There is no need to cast a variable that is already an address, such as `uint(x)`           | 2              |
-| [NC-13] | Consider using `delete` rather than assigning zero to clear values                          | 2              |
-| [NC-14] | Assembly Codes Specific – Should Have Comments                                              | 6              |
-| [NC-15] | Adding a `return` statement when the function defines a named return variable, is redundant | 5              |
+| [NC-09] | Generate perfect code headers every time                                                    | All Contracts  |
+| [NC-10] | Lock pragmas to specific compiler version                                                   | All Contracts  |
+| [NC-11] | There is no need to cast a variable that is already an address, such as `uint(x)`           | 2              |
+| [NC-12] | Consider using `delete` rather than assigning zero to clear values                          | 2              |
+| [NC-13] | Assembly Codes Specific – Should Have Comments                                              | 6              |
+| [NC-14] | Adding a `return` statement when the function defines a named return variable, is redundant | 5              |
 
 ## [L-01] Low level calls with solidity version 0.8.14 and lower can result in optimiser bug
 
@@ -41,6 +42,40 @@ The protocol is using low level calls with solidity version less then 0.8.14 whi
 ### Recommended Mitigation Steps
 
 Consider upgrading to solidity 0.8.17
+
+## [L-02] `Address(0)` checks
+
+Check of address(0) to protect the code from (0x0000000000000000000000000000000000000000) address problem just in case. This is best practice or instead of suggesting that they verify _address != address(0), you could add some good NatSpec comments explaining what is valid and what is invalid and what are the implications of accidentally using an invalid address.
+
+```solidity
+        constructor(address conduitController) Consideration(conduitController) {}
+```
+
+### Lines of code
+
+- [Seaport.sol:93](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/Seaport.sol#L93)
+- [Assertions.sol:36](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/Assertions.sol#L36)
+- [BasicOrderFulfiller.sol:41](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/BasicOrderFulfiller.sol#L41)
+- [Consideration.sol:50](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/Consideration.sol#L50)
+- [ConsiderationBase.sol:56](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/ConsiderationBase.sol#L56)
+- [Executor.sol:35](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/Executor.sol#L35)
+- [GettersAndDerivers.sol:26](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/GettersAndDerivers.sol#L26)
+- [OrderCombiner.sol:41](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/OrderCombiner.sol#L41)
+- [OrderFulfiller.sol:46](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/OrderFulfiller.sol#L46)
+- [OrderValidator.sol:55](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/OrderValidator.sol#L55)
+- [Verifiers.sol:26](https://github.com/ProjectOpenSea/seaport/blob/5de7302bc773d9821ba4759e47fc981680911ea0/contracts/lib/Verifiers.sol#L26)
+
+## [L-03] Multiple Pragma used     
+
+Solidity pragma versions should be exactly same in all contracts. Currently some contracts use `^0.8.13` and others use `^0.8.17`
+
+### Lines of code
+
+- **All Contracts**
+
+### Recommended Mitigation Steps
+
+Use one version for all contracts.
 
 ## [NC-01] Include `@return` parameters in NatSpec comments
 
@@ -209,23 +244,7 @@ Filename prefixed by `I` usually indicates an interface rather than a contract.
 
 Add `I` prefix to interface contracts    
 
-## [NC-09] Insufficient coverage   
-
-The test coverage rate of the project is >90%. Testing all functions is best practice in terms of security criteria.
-
-```
-- What is the overall line coverage percentage provided by your tests?: >90%
-```
-
-### Lines of code
-
-- **All Contracts**
-
-### Recommended Mitigation Steps
-
-Test coverage is expected to be 100%
-
-## [NC-10] Generate perfect code headers every time
+## [NC-09] Generate perfect code headers every time
 
 I recommend using header for Solidity code layout and readability
 
@@ -243,7 +262,7 @@ I recommend using header for Solidity code layout and readability
 //////////////////////////////////////////////////////////////*/
 ```
 
-## [NC-11] Lock pragmas to specific compiler version
+## [NC-10] Lock pragmas to specific compiler version
 
 Pragma statements can be allowed to float when a contract is intended for consumption by other developers, as in the case with contracts in a library or EthPM package. Otherwise, the developer would need to manually update the pragma in order to compile locally. 
 
@@ -267,7 +286,7 @@ Ethereum Smart Contract Best Practices - Lock pragmas to specific compiler versi
 
 > https://consensys.github.io/smart-contract-best-practices/development-recommendations/solidity-specific/locking-pragmas/
 
-## [NC-12] There is no need to cast a variable that is already an address, such as `uint(x)`
+## [NC-11] There is no need to cast a variable that is already an address, such as `uint(x)`
 
  There is no need to cast a variable that is already an uint, such as uint(0), 0 is also uint.
  
@@ -288,7 +307,7 @@ Use directly variable.
         if (identifierOrCriteria != 0) {
  ```
  
-## [NC-13] Consider using `delete` rather than assigning zero to clear values    
+## [NC-12] Consider using `delete` rather than assigning zero to clear values    
 
 The `delete` keyword more closely matches the semantics of what is being done, and draws more attention to the changing of state, which may lead to a more thorough audit of its associated logic
 
@@ -309,7 +328,7 @@ Use the `delete` keyword.
        delete advancedOrder.numerator;
 ```
 
-## [NC-14] Assembly Codes Specific – Should Have Comments  
+## [NC-13] Assembly Codes Specific – Should Have Comments  
 
 Since this is a low level language that is more difficult to parse by readers, include extensive documentation, comments on the rationale behind its use, clearly explaining what each assembly instruction does
 
@@ -330,7 +349,7 @@ Note that using Aseembly removes several important security features of Solidity
 
 Include NatSpec in assembly codes.
 
-## [NC-15] Adding a `return` statement when the function defines a named return variable, is redundant
+## [NC-14] Adding a `return` statement when the function defines a named return variable, is redundant
 
 ```solidity
        return amount;
