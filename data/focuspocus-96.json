@@ -1,0 +1,8 @@
+{
+  "contest": 201,
+  "handle": "focuspocus",
+  "risk": "3",
+  "title": "ReturndataPointer Out of Bounds: A Recipe for Disaster",
+  "issueId": 96,
+  "issueUrl": "https://github.com/code-423n4/2023-01-opensea-findings/issues/96"
+}
